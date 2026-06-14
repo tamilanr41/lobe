@@ -165,7 +165,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 px-4 py-4 pb-32 overflow-y-auto flex flex-col gap-2">
+        <div className="flex-1 px-4 py-4 pb-40 overflow-y-auto flex flex-col gap-2">
           {grouped.map((group) => (
             <div key={group.date}>
               <div className="text-center text-xs text-white/30 my-3">{group.date}</div>
@@ -176,7 +176,7 @@ export default function ChatPage() {
                     key={msg._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex mb-2 ${isMine ? 'justify-end' : 'justify-start'}`}
+                    className={`w-full flex mb-2 ${isMine ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
                       className={`group relative max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
@@ -242,7 +242,7 @@ export default function ChatPage() {
         {/* Input */}
         <form
           onSubmit={handleSend}
-          className="fixed bottom-24 left-0 right-0 px-4 flex gap-2 max-w-md mx-auto z-20"
+          className="fixed bottom-20 left-0 right-0 px-4 py-2 flex gap-2 max-w-md mx-auto z-20 bg-bg-card/80 backdrop-blur-md"
         >
           <input
             value={text}
