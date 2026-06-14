@@ -39,12 +39,17 @@ export default function ChatPage() {
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadMessages = async () => {
-    const { data } = await api.get('/chat/messages');
-    setMessages(data.messages);
+    try {
+      const { data } = await api.get('/chat/messages');
+      setMessages(data.messages);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -84,7 +89,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, partnerTyping]);
 
   const handleTyping = (value: string) => {
     setText(value);
@@ -147,87 +152,125 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <main className="relative min-h-screen flex flex-col pb-24">
+      <main className="relative min-h-screen flex flex-col">
         {/* Header */}
         <div className="glass sticky top-0 z-10 px-5 py-4 flex items-center justify-between rounded-b-3xl">
           <div>
-            <h1 className="font-display text-xl gradient-text">Our Chat</h1>
-            <p className="text-xs text-white/40">
-              {partnerOnline ? (
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> Online
-                </span>
-              ) : (
-                'Offline'
-              )}
+            <h1 className="font-display text-xl gradient-text">Our chat</h1>
+            <p className="text-xs text-white/40 mt-0.5 flex items-center gap-1.5 h-4">
+              <span
+                className={`w-2 h-2 rounded-full inline-block transition-colors ${
+                  partnerOnline ? 'bg-green-400' : 'bg-white/20'
+                }`}
+              />
+              {partnerOnline ? 'Online now' : 'Offline'}
             </p>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 px-4 py-4 pb-40 overflow-y-auto flex flex-col gap-2">
-          {grouped.map((group) => (
-            <div key={group.date}>
-              <div className="text-center text-xs text-white/30 my-3">{group.date}</div>
-              {group.items.map((msg) => {
-                const isMine = String(msg.sender._id) === String(user?.id);
-                return (
-                  <motion.div
-                    key={msg._id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`w-full flex mb-2 ${isMine ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`group relative max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
-                        isMine
-                          ? 'bg-romantic-gradient text-white rounded-br-sm'
-                          : 'glass rounded-bl-sm'
+        <div className="flex-1 px-4 pt-4 pb-44 overflow-y-auto flex flex-col gap-1">
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
+              Loading your conversation…
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-2">
+              <span className="text-4xl mb-1">💌</span>
+              <p className="text-white/60 text-sm font-medium">No messages yet</p>
+              <p className="text-white/30 text-xs">
+                Say hi to start your conversation
+              </p>
+            </div>
+          ) : (
+            grouped.map((group) => (
+              <div key={group.date}>
+                <div className="text-center text-[11px] text-white/30 my-4 tracking-wide uppercase">
+                  {group.date}
+                </div>
+                {group.items.map((msg, idx) => {
+                  const isMine = String(msg.sender._id) === String(user?.id);
+                  const prevMsg = group.items[idx - 1];
+                  const sameSenderAsPrev =
+                    prevMsg && String(prevMsg.sender._id) === String(msg.sender._id);
+
+                  return (
+                    <motion.div
+                      key={msg._id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className={`w-full flex ${sameSenderAsPrev ? 'mt-1' : 'mt-3'} ${
+                        isMine ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      {editingId === msg._id ? (
-                        <form onSubmit={submitEdit} className="flex gap-2">
-                          <input
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            className="bg-black/20 rounded-lg px-2 py-1 text-sm outline-none flex-1"
-                            autoFocus
-                          />
-                          <button type="submit" className="text-xs underline">
-                            Save
-                          </button>
-                        </form>
-                      ) : (
-                        <>
-                          <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-                          <p className="text-[10px] opacity-60 mt-1 text-right">
-                            {formatTime(msg.createdAt)}
-                          </p>
+                      <div
+                        className={`group relative max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                          isMine
+                            ? 'bg-romantic-gradient text-white rounded-br-md'
+                            : 'glass rounded-bl-md'
+                        }`}
+                      >
+                        {editingId === msg._id ? (
+                          <form onSubmit={submitEdit} className="flex gap-2 items-center">
+                            <input
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              className="bg-black/20 rounded-lg px-2 py-1 text-sm outline-none flex-1 min-w-[120px]"
+                              autoFocus
+                            />
+                            <button type="submit" className="text-xs underline shrink-0">
+                              Save
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            <p className="whitespace-pre-wrap break-words pr-8">{msg.text}</p>
+                            <p
+                              className={`text-[10px] mt-1 text-right ${
+                                isMine ? 'text-white/70' : 'text-white/40'
+                              }`}
+                            >
+                              {formatTime(msg.createdAt)}
+                            </p>
 
-                          {isMine && (
-                            <div className="absolute -top-2 right-2 hidden group-hover:flex gap-1 bg-bg-card rounded-full px-2 py-1 text-[10px]">
-                              <button onClick={() => startEdit(msg)}>✏️</button>
-                              <button onClick={() => handleDelete(msg._id)}>🗑️</button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          ))}
+                            {isMine && (
+                              <div className="absolute -top-2 right-2 hidden group-hover:flex gap-1 bg-bg-card border border-white/10 rounded-full px-2 py-1 text-[11px] shadow-md">
+                                <button
+                                  onClick={() => startEdit(msg)}
+                                  aria-label="Edit message"
+                                  className="hover:opacity-70 transition-opacity"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(msg._id)}
+                                  aria-label="Delete message"
+                                  className="hover:opacity-70 transition-opacity"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))
+          )}
 
           <AnimatePresence>
             {partnerTyping && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="glass rounded-2xl px-4 py-2 text-sm w-fit"
+                className="glass rounded-2xl rounded-bl-md px-4 py-3 text-sm w-fit mt-3"
               >
-                <span className="inline-flex gap-1">
+                <span className="inline-flex gap-1 items-center">
                   <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -239,29 +282,31 @@ export default function ChatPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <form
-          onSubmit={handleSend}
-          className="fixed bottom-20 left-0 right-0 px-4 py-2 flex gap-2 max-w-md mx-auto z-20 bg-bg-card/80 backdrop-blur-md"
-        >
-          <input
-            value={text}
-            onChange={(e) => handleTyping(e.target.value)}
-            placeholder="Type a message…"
-            className="flex-1 glass rounded-2xl px-4 py-3 text-sm outline-none"
-          />
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            type="submit"
-            className="px-5 rounded-2xl bg-romantic-gradient font-medium"
+        {/* Input bar — sits just above bottom nav */}
+        <div className="fixed bottom-[88px] left-0 right-0 z-20 px-4">
+          <form
+            onSubmit={handleSend}
+            className="glass rounded-2xl flex gap-2 p-2 max-w-md mx-auto"
           >
-            Send
-          </motion.button>
-        </form>
+            <input
+              value={text}
+              onChange={(e) => handleTyping(e.target.value)}
+              placeholder="Type a message…"
+              className="flex-1 bg-transparent rounded-xl px-3 py-2.5 text-sm outline-none placeholder:text-white/30"
+            />
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              type="submit"
+              disabled={!text.trim()}
+              className="px-5 rounded-xl bg-romantic-gradient font-medium text-sm disabled:opacity-40 transition-opacity"
+            >
+              Send
+            </motion.button>
+          </form>
+        </div>
 
         <BottomNav />
       </main>
     </ProtectedRoute>
   );
 }
-
