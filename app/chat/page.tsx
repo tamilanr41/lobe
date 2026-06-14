@@ -165,7 +165,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 px-4 py-4 overflow-y-auto flex flex-col gap-2">
+        <div className="flex-1 px-4 py-4 pb-32 overflow-y-auto flex flex-col gap-2">
           {grouped.map((group) => (
             <div key={group.date}>
               <div className="text-center text-xs text-white/30 my-3">{group.date}</div>
