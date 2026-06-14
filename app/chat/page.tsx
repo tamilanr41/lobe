@@ -170,7 +170,7 @@ export default function ChatPage() {
             <div key={group.date}>
               <div className="text-center text-xs text-white/30 my-3">{group.date}</div>
               {group.items.map((msg) => {
-                const isMine = msg.sender._id === user?.id;
+                const isMine = String(msg.sender._id) === String(user?.id);
                 return (
                   <motion.div
                     key={msg._id}
