@@ -242,7 +242,7 @@ export default function ChatPage() {
         {/* Input */}
         <form
           onSubmit={handleSend}
-          className="fixed bottom-24 left-0 right-0 px-4 flex gap-4 max-w-md mx-auto z-40"
+          className="fixed bottom-34 left-0 right-0 px-4 flex gap-2 max-w-md mx-auto z-20"
         >
           <input
             value={text}
